@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 # File name   : motor.py
-# Description : Control LEDs 
+# Description : Control LEDs
 # Website     : www.adeept.com
 # E-mail      : support@adeept.com
 # Author      : William
 # Date        : 2018/10/12
-import RPi.GPIO as GPIO
 import time
+
+import RPi.GPIO as GPIO
 
 left_R = 22
 left_G = 23
@@ -16,8 +17,9 @@ right_R = 10
 right_G = 9
 right_B = 25
 
-on  = GPIO.LOW
+on = GPIO.LOW
 off = GPIO.HIGH
+
 
 def both_on():
     GPIO.output(left_R, on)
@@ -28,7 +30,8 @@ def both_on():
     GPIO.output(right_G, on)
     GPIO.output(right_B, on)
 
-def setup():#initialization
+
+def setup():  # initialization
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(left_R, GPIO.OUT)
@@ -39,6 +42,7 @@ def setup():#initialization
     GPIO.setup(right_B, GPIO.OUT)
     both_off()
 
+
 def both_off():
     GPIO.output(left_R, off)
     GPIO.output(left_G, off)
@@ -48,15 +52,18 @@ def both_off():
     GPIO.output(right_G, off)
     GPIO.output(right_B, off)
 
+
 def side_on(side_X):
     GPIO.output(side_X, on)
+
 
 def side_off(side_X):
     GPIO.output(side_X, off)
 
+
 def police(police_time):
-    for i in range (1,police_time):
-        for i in range (1,3):
+    for i in range(1, police_time):
+        for i in range(1, 3):
             side_on(left_R)
             side_on(right_B)
             time.sleep(0.1)
@@ -65,7 +72,7 @@ def police(police_time):
             side_on(right_R)
             time.sleep(0.1)
             both_off()
-        for i in range (1,5):
+        for i in range(1, 5):
             side_on(left_R)
             side_on(right_B)
             time.sleep(0.3)
@@ -74,41 +81,50 @@ def police(police_time):
             side_on(right_R)
             time.sleep(0.3)
             both_off()
+
 
 def red():
     side_on(right_R)
     side_on(left_R)
 
+
 def green():
     side_on(right_G)
     side_on(left_G)
+
 
 def blue():
     side_on(right_B)
     side_on(left_B)
 
+
 def yellow():
     red()
-    green()    
+    green()
+
 
 def pink():
     red()
     blue()
 
+
 def cyan():
     blue()
     green()
 
-def side_color_on(side_X,side_Y):
+
+def side_color_on(side_X, side_Y):
     GPIO.output(side_X, on)
     GPIO.output(side_Y, on)
 
-def side_color_off(side_X,side_Y):
+
+def side_color_off(side_X, side_Y):
     GPIO.output(side_X, off)
     GPIO.output(side_Y, off)
 
+
 def turn_left(times):
-    for i in range(0,times):
+    for i in range(0, times):
         both_off()
         side_on(left_G)
         side_on(left_R)
@@ -116,8 +132,9 @@ def turn_left(times):
         both_off()
         time.sleep(0.5)
 
+
 def turn_right(times):
-    for i in range(1,times):
+    for i in range(1, times):
         both_off()
         side_on(right_G)
         side_on(right_R)
@@ -125,7 +142,8 @@ def turn_right(times):
         both_off()
         time.sleep(0.5)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     setup()
     police(4)
     both_on()

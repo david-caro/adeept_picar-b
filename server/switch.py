@@ -1,4 +1,4 @@
-#!/usr/bin/env/python
+#!/usr/bin/env python3
 # File name   : switch.py
 # Production  : HAT
 # Website     : www.gewbot.com
@@ -7,8 +7,17 @@
 
 import RPi.GPIO as GPIO
 
+ON = True
+OFF = False
 
-def switchSetup():
+PORTS_TO_PIN = {
+    1: 5,
+    2: 6,
+    3: 13,
+}
+
+
+def switchSetup() -> None:
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(5, GPIO.OUT)
@@ -16,33 +25,18 @@ def switchSetup():
     GPIO.setup(13, GPIO.OUT)
 
 
-def switch(port, status):
-    if port == 1:
-        if status == 1:
-            GPIO.output(5, GPIO.HIGH)
-        elif status == 0:
-            GPIO.output(5, GPIO.LOW)
-        else:
-            pass
-    elif port == 2:
-        if status == 1:
-            GPIO.output(6, GPIO.HIGH)
-        elif status == 0:
-            GPIO.output(6, GPIO.LOW)
-        else:
-            pass
-    elif port == 3:
-        if status == 1:
-            GPIO.output(13, GPIO.HIGH)
-        elif status == 0:
-            GPIO.output(13, GPIO.LOW)
-        else:
-            pass
+def switch(port: int, status: bool) -> None:
+    pin = PORTS_TO_PIN.get(port, None)
+    if pin is None:
+        raise Exception(f"Wrong Command, only ports {list(ports.keys())} allowed.")
+
+    if status is ON:
+        GPIO.output(pin, GPIO.HIGH)
     else:
-        print("Wrong Command: Example--switch(3, 1)->to switch on port3")
+        GPIO.output(pin, GPIO.LOW)
 
 
 def set_all_switch_off():
-    switch(1, 0)
-    switch(2, 0)
-    switch(3, 0)
+    switch(port=1, status=OFF)
+    switch(port=2, status=OFF)
+    switch(port=3, status=OFF)

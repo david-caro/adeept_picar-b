@@ -8,48 +8,47 @@ import time
 
 import RPi.GPIO as GPIO
 
-Tr = 11
-Ec = 8
-
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(Tr, GPIO.OUT, initial=GPIO.LOW)
-GPIO.setup(Ec, GPIO.IN)
+TRANSMITTER_PIN = 11
+READER_PIN = 8
+SPEED_OF_SOUND_MpS = 340
 
 
-def checkdist():  # Reading distance
+def setup():
+    GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(Tr, GPIO.OUT, initial=GPIO.LOW)
-    GPIO.setup(Ec, GPIO.IN)
-    GPIO.output(Tr, GPIO.HIGH)
+    GPIO.setup(TRANSMITTER_PIN, GPIO.OUT, initial=GPIO.LOW)
+    GPIO.setup(READER_PIN, GPIO.IN)
+
+
+def checkdist():
+    """
+    Backwards compatibility, remove when not used anymore.
+    """
+    return get_distance()
+
+def get_distance() -> float:
+    """
+    Returns the current measured distance to what's in front of the sensor.
+    """
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(TRANSMITTER_PIN, GPIO.OUT, initial=GPIO.LOW)
+    GPIO.setup(READER_PIN, GPIO.IN)
+
+    GPIO.output(TRANSMITTER_PIN, GPIO.HIGH)
     time.sleep(0.000015)
-    GPIO.output(Tr, GPIO.LOW)
-    while not GPIO.input(Ec):
+    GPIO.output(TRANSMITTER_PIN, GPIO.LOW)
+    while not GPIO.input(READER_PIN):
         pass
+
     t1 = time.time()
-    while GPIO.input(Ec):
+    while GPIO.input(READER_PIN):
         pass
+
     t2 = time.time()
-    return round((t2 - t1) * 340 / 2, 2)
-    # return (t2-t1)*340/2
+    return round((t2 - t1) * SPEED_OF_SOUND_MpS / 2, 2)
 
-
-# def checkdist():       #Reading distance
-#     GPIO.output(Tr, GPIO.HIGH)
-#     time.sleep(0.000015)
-#     GPIO.output(Tr, GPIO.LOW)
-#     while not GPIO.input(Ec):
-#         pass
-#     t1 = time.time()
-#     while GPIO.input(Ec):
-#         t3 = time.time()
-#         if ((t3-t1)*340/2)>=2:
-#             break
-#         pass
-#     t2 = time.time()
-#     return round((t2-t1)*340/2,2)
 
 if __name__ == "__main__":
-    while 1:
-        print(checkdist())
+    while True:
+        print(get_distance())
         time.sleep(1)

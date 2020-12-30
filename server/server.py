@@ -1,9 +1,9 @@
 #!/usr/bin/env/python
 # File name   : server.py
 # Production  : PiCar-C
-# Website	 : www.adeept.com
-# Author	  : William
-# Date		: 2019/11/21
+# Website     : www.adeept.com
+# Author      : William
+# Date        : 2019/11/21
 import servo
 
 servo.servo_init()
@@ -433,7 +433,7 @@ def run():
                 tcpCliSock.send(("function_6_on").encode())
 
         # elif 'function_1_off' in data:
-        # 	tcpCliSock.send(('function_1_off').encode())
+        #     tcpCliSock.send(('function_1_off').encode())
 
         elif "function_2_off" in data:
             functionMode = 0
@@ -706,8 +706,8 @@ if __name__ == "__main__":
     ledthread = LED.LED_ctrl()
     ledthread.start()
     # except:
-    # 	 print('Use "sudo pip3 install rpi_ws281x" to install WS_281x package')
-    # 	 pass
+    #      print('Use "sudo pip3 install rpi_ws281x" to install WS_281x package')
+    #      pass
 
     if SR_dect:
         sr = SR_ctrl()
@@ -725,9 +725,9 @@ if __name__ == "__main__":
             print("...connected from :", addr)
 
             # fpv=FPV.FPV()
-            # fps_threading=threading.Thread(target=FPV_thread)		 #Define a thread for FPV and OpenCV
-            # fps_threading.setDaemon(True)							 #'True' means it is a front thread,it would close when the mainloop() closes
-            # fps_threading.start()									 #Thread starts
+            # fps_threading=threading.Thread(target=FPV_thread)         #Define a thread for FPV and OpenCV
+            # fps_threading.setDaemon(True)                             #'True' means it is a front thread,it would close when the mainloop() closes
+            # fps_threading.start()                                     #Thread starts
             break
         except:
             led.colorWipe(0, 0, 0)

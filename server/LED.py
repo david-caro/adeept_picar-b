@@ -168,7 +168,6 @@ class LED_ctrl(threading.Thread):
         self.__running.clear()
 
 
-led = LED()
 if __name__ == "__main__":
     led = LED()
     led.colorWipe(255, 255, 255)

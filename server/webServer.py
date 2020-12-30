@@ -13,7 +13,6 @@ import socket
 import threading
 import time
 
-import Adafruit_PCA9685
 import app
 import functions
 import info
@@ -26,14 +25,14 @@ import websockets
 OLED_connection = 0
 """
 try:
-	import OLED
-	screen = OLED.OLED_ctrl()
-	screen.start()
-	screen.screen_show(1, 'ADEEPT.COM')
+    import OLED
+    screen = OLED.OLED_ctrl()
+    screen.start()
+    screen.screen_show(1, 'ADEEPT.COM')
 except:
-	OLED_connection = 0
-	print('OLED disconnected')
-	pass
+    OLED_connection = 0
+    print('OLED disconnected')
+    pass
 """
 
 functionMode = 0

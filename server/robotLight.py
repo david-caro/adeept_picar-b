@@ -1,59 +1,90 @@
 #!/usr/bin/env python3
 # File name   : servo.py
 # Description : Control lights
-# Author	  : William
-# Date		: 2019/02/23
+# Author      : William
+# Date        : 2019/02/23
 import sys
 import threading
 import time
+from dataclasses import dataclass
+from typing import List
 
-import RPi.GPIO as GPIO
-from rpi_ws281x import *
+from RPi import GPIO
+from rpi_ws281x import Adafruit_NeoPixel, Color
 
 
-class RobotLight(threading.Thread):
-    def __init__(self, *args, **kwargs):
-        self.LED_COUNT = 16  # Number of LED pixels.
-        self.LED_PIN = 12  # GPIO pin connected to the pixels (18 uses PWM!).
-        self.LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
-        self.LED_DMA = 10  # DMA channel to use for generating signal (try 10)
-        self.LED_BRIGHTNESS = 255  # Set to 0 for darkest and 255 for brightest
-        self.LED_INVERT = (
-            False  # True to invert the signal (when using NPN transistor level shift)
-        )
-        self.LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
+@dataclass
+class FrontLed:
+    R_pin: int
+    G_pin: int
+    B_pin: int
 
-        self.colorBreathR = 0
-        self.colorBreathG = 0
-        self.colorBreathB = 0
-        self.breathSteps = 10
+    def setup(self):
+        GPIO.setup(self.R_pin, GPIO.OUT)
+        GPIO.setup(self.G_pin, GPIO.OUT)
+        GPIO.setup(self.B_pin, GPIO.OUT)
 
-        self.left_R = 22
-        self.left_G = 23
-        self.left_B = 24
+    def off(self):
+        GPIO.output(self.R_pin, GPIO.HIGH)
+        GPIO.output(self.G_pin, GPIO.HIGH)
+        GPIO.output(self.B_pin, GPIO.HIGH)
 
-        self.right_R = 10
-        self.right_G = 9
-        self.right_B = 25
+    def on(self):
+        GPIO.output(self.R_pin, GPIO.LOW)
+        GPIO.output(self.G_pin, GPIO.LOW)
+        GPIO.output(self.B_pin, GPIO.LOW)
 
-        self.on = GPIO.LOW
-        self.off = GPIO.HIGH
+    def blue(self):
+        GPIO.output(self.R_pin, GPIO.HIGH)
+        GPIO.output(self.G_pin, GPIO.HIGH)
+        GPIO.output(self.B_pin, GPIO.LOW)
 
-        self.lightMode = "none"  #'none' 'police' 'breath'
+    def green(self):
+        GPIO.output(self.R_pin, GPIO.HIGH)
+        GPIO.output(self.G_pin, GPIO.LOW)
+        GPIO.output(self.B_pin, GPIO.HIGH)
 
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(5, GPIO.OUT)
-        GPIO.setup(6, GPIO.OUT)
-        GPIO.setup(13, GPIO.OUT)
+    def red(self):
+        GPIO.output(self.R_pin, GPIO.LOW)
+        GPIO.output(self.G_pin, GPIO.HIGH)
+        GPIO.output(self.B_pin, GPIO.HIGH)
 
-        GPIO.setup(self.left_R, GPIO.OUT)
-        GPIO.setup(self.left_G, GPIO.OUT)
-        GPIO.setup(self.left_B, GPIO.OUT)
-        GPIO.setup(self.right_R, GPIO.OUT)
-        GPIO.setup(self.right_G, GPIO.OUT)
-        GPIO.setup(self.right_B, GPIO.OUT)
+    def white(self):
+        self.on()
 
+    def cyan(self):
+        GPIO.output(self.R_pin, GPIO.HIGH)
+        GPIO.output(self.G_pin, GPIO.LOW)
+        GPIO.output(self.B_pin, GPIO.LOW)
+
+    def pink(self):
+        GPIO.output(self.R_pin, GPIO.LOW)
+        GPIO.output(self.G_pin, GPIO.HIGH)
+        GPIO.output(self.B_pin, GPIO.LOW)
+
+    def yellow(self):
+        GPIO.output(self.R_pin, GPIO.LOW)
+        GPIO.output(self.G_pin, GPIO.LOW)
+        GPIO.output(self.B_pin, GPIO.HIGH)
+
+
+class LedStrip:
+    # Number of LED pixels.
+    LED_COUNT = 12
+    # GPIO pin connected to the pixels (18 uses PWM!).
+    LED_PIN = 12
+    # LED signal frequency in hertz (usually 800khz)
+    LED_FREQ_HZ = 800000
+    # DMA channel to use for generating signal (try 10)
+    LED_DMA = 10
+    # Set to 0 for darkest and 255 for brightest
+    LED_BRIGHTNESS = 255
+    # True to invert the signal (when using NPN transistor level shift)
+    LED_INVERT = False
+    # set to '1' for GPIOs 13, 19, 41, 45 or 53
+    LED_CHANNEL = 0
+
+    def __init__(self):
         # Create NeoPixel object with appropriate configuration.
         self.strip = Adafruit_NeoPixel(
             self.LED_COUNT,
@@ -67,84 +98,80 @@ class RobotLight(threading.Thread):
         # Intialize the library (must be called once before other functions).
         self.strip.begin()
 
-        super(RobotLight, self).__init__(*args, **kwargs)
+    def setColor(self, R: int, G: int, B: int) -> None:
+        """Change color across display a pixel at a time."""
+        color = Color(int(R), int(G), int(B))
+        for pixel in range(self.strip.numPixels()):
+            self.strip.setPixelColor(pixel, color)
+            self.strip.show()
+
+    def off(self) -> None:
+        self.setColor(0, 0, 0)
+
+
+class RobotLightController(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+
+        self.colorBreathR = 0
+        self.colorBreathG = 0
+        self.colorBreathB = 0
+        self.breathSteps = 10
+
+        self.left_led = FrontLed(R_pin=22, G_pin=23, B_pin=24)
+        self.right_led = FrontLed(R_pin=10, G_pin=9, B_pin=25)
+        self.left_led.setup()
+        self.right_led.setup()
+        self.strip = LedStrip()
+
+        self.lightMode = "none"  #'none' 'police' 'breath'
+
+        super().__init__(*args, **kwargs)
         self.__flag = threading.Event()
         self.__flag.clear()
 
-    def both_off(self):
-        GPIO.output(self.left_R, self.off)
-        GPIO.output(self.left_G, self.off)
-        GPIO.output(self.left_B, self.off)
+    def front_off(self):
+        self.left_led.off()
+        self.right_led.off()
 
-        GPIO.output(self.right_R, self.off)
-        GPIO.output(self.right_G, self.off)
-        GPIO.output(self.right_B, self.off)
+    def front_on(self):
+        self.left_led.on()
+        self.right_led.on()
 
-    def both_on(self):
-        GPIO.output(self.left_R, self.on)
-        GPIO.output(self.left_G, self.on)
-        GPIO.output(self.left_B, self.on)
+    def front_red(self):
+        self.left_led.red()
+        self.right_led.red()
 
-        GPIO.output(self.right_R, self.on)
-        GPIO.output(self.right_G, self.on)
-        GPIO.output(self.right_B, self.on)
+    def front_green(self):
+        self.left_led.green()
+        self.right_led.green()
 
-    def side_on(self, side_X):
-        GPIO.output(side_X, self.on)
+    def front_blue(self):
+        self.left_led.blue()
+        self.right_led.blue()
 
-    def side_off(self, side_X):
-        GPIO.output(side_X, self.off)
+    def front_yellow(self):
+        self.left_led.yellow()
+        self.right_led.yellow()
 
-    def red(self):
-        self.side_on(self.right_R)
-        self.side_on(self.left_R)
+    def front_pink(self):
+        self.left_led.pink()
+        self.right_led.pink()
 
-    def green(self):
-        self.side_on(self.right_G)
-        self.side_on(self.left_G)
-
-    def blue(self):
-        self.side_on(self.right_B)
-        self.side_on(self.left_B)
-
-    def yellow(self):
-        self.red()
-        self.green()
-
-    def pink(self):
-        self.red()
-        self.blue()
-
-    def cyan(self):
-        self.blue()
-        self.green()
+    def front_cyan(self):
+        self.left_led.cyan()
+        self.right_led.cyan()
 
     def turnLeft(self):
-        GPIO.output(self.left_G, self.on)
-        GPIO.output(self.left_R, self.on)
+        self.left.yellow()
 
     def turnRight(self):
-        GPIO.output(self.right_G, self.on)
-        GPIO.output(self.right_R, self.on)
-
-    # Define functions which animate LEDs in various ways.
-    def setColor(self, R, G, B):
-        """Wipe color across display a pixel at a time."""
-        color = Color(int(R), int(G), int(B))
-        for i in range(self.strip.numPixels()):
-            self.strip.setPixelColor(i, color)
-            self.strip.show()
-
-    def setSomeColor(self, R, G, B, ID):
-        color = Color(int(R), int(G), int(B))
-        # print(int(R),'  ',int(G),'  ',int(B))
-        for i in ID:
-            self.strip.setPixelColor(i, color)
-            self.strip.show()
+        self.right.yellow()
 
     def pause(self):
         self.lightMode = "none"
-        self.setColor(0, 0, 0)
+        self.strip.setColor(0, 0, 0)
         self.__flag.clear()
 
     def resume(self):
@@ -154,25 +181,38 @@ class RobotLight(threading.Thread):
         self.lightMode = "police"
         self.resume()
 
+    def all_blue(self):
+        self.strip.setColor(0, 0, 255)
+        self.front_blue()
+
+    def all_off(self):
+        self.strip.off()
+        self.front_off()
+
+    def all_red(self):
+        self.strip.setColor(255, 0, 0)
+        self.front_red()
+
     def policeProcessing(self):
         while self.lightMode == "police":
             for i in range(0, 3):
-                self.setSomeColor(0, 0, 255, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-                self.blue()
+                self.all_blue()
                 time.sleep(0.05)
-                self.setSomeColor(0, 0, 0, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-                self.both_off()
+
+                self.all_off()
                 time.sleep(0.05)
+
             if self.lightMode != "police":
                 break
+
             time.sleep(0.1)
             for i in range(0, 3):
-                self.setSomeColor(255, 0, 0, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-                self.red()
+                self.all_red()
                 time.sleep(0.05)
-                self.setSomeColor(0, 0, 0, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-                self.both_off()
+
+                self.all_off()
                 time.sleep(0.05)
+
             time.sleep(0.1)
 
     def breath(self, R_input, G_input, B_input):
@@ -187,65 +227,23 @@ class RobotLight(threading.Thread):
             for i in range(0, self.breathSteps):
                 if self.lightMode != "breath":
                     break
-                self.setColor(
+
+                self.strip.setColor(
                     self.colorBreathR * i / self.breathSteps,
                     self.colorBreathG * i / self.breathSteps,
                     self.colorBreathB * i / self.breathSteps,
                 )
                 time.sleep(0.03)
+
             for i in range(0, self.breathSteps):
                 if self.lightMode != "breath":
                     break
-                self.setColor(
+                self.strip.setColor(
                     self.colorBreathR - (self.colorBreathR * i / self.breathSteps),
                     self.colorBreathG - (self.colorBreathG * i / self.breathSteps),
                     self.colorBreathB - (self.colorBreathB * i / self.breathSteps),
                 )
                 time.sleep(0.03)
-
-    def frontLight(self, switch):
-        if switch == "on":
-            GPIO.output(6, GPIO.HIGH)
-            GPIO.output(13, GPIO.HIGH)
-        elif switch == "off":
-            GPIO.output(5, GPIO.LOW)
-            GPIO.output(13, GPIO.LOW)
-
-    def switch(self, port, status):
-        if port == 1:
-            if status == 1:
-                GPIO.output(5, GPIO.HIGH)
-            elif status == 0:
-                GPIO.output(5, GPIO.LOW)
-            else:
-                pass
-        elif port == 2:
-            if status == 1:
-                GPIO.output(6, GPIO.HIGH)
-            elif status == 0:
-                GPIO.output(6, GPIO.LOW)
-            else:
-                pass
-        elif port == 3:
-            if status == 1:
-                GPIO.output(13, GPIO.HIGH)
-            elif status == 0:
-                GPIO.output(13, GPIO.LOW)
-            else:
-                pass
-        else:
-            print("Wrong Command: Example--switch(3, 1)->to switch on port3")
-
-    def set_all_switch_off(self):
-        self.switch(1, 0)
-        self.switch(2, 0)
-        self.switch(3, 0)
-
-    def headLight(self, switch):
-        if switch == "on":
-            GPIO.output(5, GPIO.HIGH)
-        elif switch == "off":
-            GPIO.output(5, GPIO.LOW)
 
     def lightChange(self):
         if self.lightMode == "none":
@@ -263,11 +261,24 @@ class RobotLight(threading.Thread):
 
 
 if __name__ == "__main__":
-    RL = RobotLight()
+    RL = RobotLightController()
     RL.start()
-    RL.breath(70, 70, 255)
-    time.sleep(15)
-    RL.pause()
-    RL.frontLight("off")
-    time.sleep(2)
-    RL.police()
+    try:
+        RL.front_on()
+        input("Hit enter to continue...")
+        RL.left_led.yellow()
+        input("Hit enter to continue...")
+        RL.left_led.cyan()
+        input("Hit enter to continue...")
+        RL.breath(70, 70, 255)
+        input("Hit enter to continue...")
+        RL.pause()
+        input("Hit enter to continue...")
+        RL.police()
+        while True:
+            time.sleep(1)
+
+    finally:
+        print("turning off...")
+        RL.pause()
+        RL.all_off()
